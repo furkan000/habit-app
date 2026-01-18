@@ -85,6 +85,11 @@ function saveTenantDB(tenant) {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(join(__dirname, '../dist')));
+}
+
 // Middleware to extract and validate tenant
 function requireTenant(req, res, next) {
   const tenant = req.query.tenant || req.body.tenant;
@@ -282,7 +287,14 @@ app.put('/api/logs/:id', requireTenant, async (req, res) => {
   }
 });
 
-const PORT = 3001;
+// Serve HTML files for production (must be after API routes)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (_req, res) => {
+    res.sendFile(join(__dirname, '../dist/index.html'));
+  });
+}
+
+const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
