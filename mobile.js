@@ -1,14 +1,14 @@
-// Desktop version with 7-day grid
+// Mobile-specific version with 3-day grid
 import * as common from './common.js';
 
-// Desktop-specific: Get array of dates for the grid (6 past days + today)
+// Mobile-specific: Get array of dates for the mobile grid (2 past days + today = 3 days)
 function getGridDates() {
   const dates = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Add 6 past days
-  for (let i = 6; i >= 1; i--) {
+  // Add 2 past days
+  for (let i = 2; i >= 1; i--) {
     dates.push(common.getDaysAgo(i));
   }
 
@@ -18,21 +18,20 @@ function getGridDates() {
   return dates;
 }
 
-// Desktop-specific: Format header date (full day name + month/day)
+// Mobile-specific: Format header date (short day name + day number)
 function formatHeaderDate(date) {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const month = date.getMonth() + 1;
+  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   const day = date.getDate();
 
-  return `${days[date.getDay()]}\n${month}/${day}`;
+  return `${days[date.getDay()]}\n${day}`;
 }
 
-// Desktop-specific: Render grid header (includes streak column)
+// Mobile-specific: Render grid header (no streak column)
 function renderGridHeader() {
   const header = document.getElementById('grid-header');
   const dates = getGridDates();
 
-  let html = '<div class="grid-header-cell">Habit Name</div>';
+  let html = '<div class="grid-header-cell">Habit</div>';
 
   dates.forEach((date, idx) => {
     const isToday = idx === dates.length - 1;
@@ -41,12 +40,10 @@ function renderGridHeader() {
     html += `<div class="grid-header-cell ${todayClass}">${dateStr}</div>`;
   });
 
-  html += '<div class="grid-header-cell">✓</div>';
-
   header.innerHTML = html;
 }
 
-// Desktop-specific: Render habits grid (includes streak column)
+// Mobile-specific: Render habits grid (no streak column)
 async function renderHabitsGrid() {
   const gridBody = document.getElementById('grid-body');
   const dates = getGridDates();
@@ -68,8 +65,6 @@ async function renderHabitsGrid() {
   let html = '';
 
   habitsWithLogs.forEach(habit => {
-    const streak = common.calculateCurrentStreak(habit.logs);
-
     html += `<div class="habit-row">`;
     html += `<div class="habit-name-cell" data-edit-habit="${habit.id}">${habit.name}</div>`;
 
@@ -87,7 +82,6 @@ async function renderHabitsGrid() {
       html += `</div>`;
     });
 
-    html += `<div class="day-cell" style="border: none; cursor: default; font-size: 12px;">${streak > 0 ? streak : ''}</div>`;
     html += `</div>`;
   });
 
@@ -121,19 +115,6 @@ async function loadHabits() {
   await renderHabitsGrid();
 }
 
-// Week navigation (for future use)
-function previousWeek() {
-  common.currentWeekStart.setDate(common.currentWeekStart.getDate() - 7);
-  renderGridHeader();
-  renderHabitsGrid();
-}
-
-function nextWeek() {
-  common.currentWeekStart.setDate(common.currentWeekStart.getDate() + 7);
-  renderGridHeader();
-  renderHabitsGrid();
-}
-
 // Initialize
 async function init() {
   // Check for tenant parameter
@@ -141,8 +122,8 @@ async function init() {
     return;
   }
 
-  // Load night mode preference (desktop uses viewport element)
-  common.loadNightModePreference('viewport');
+  // Load night mode preference (mobile uses body element)
+  common.loadNightModePreference('body');
 
   await loadHabits();
 
@@ -152,9 +133,7 @@ async function init() {
   document.getElementById('cancel-btn').addEventListener('click', common.closeModal);
   document.getElementById('save-habit-btn').addEventListener('click', () => common.saveHabit(loadHabits));
   document.getElementById('delete-habit-btn').addEventListener('click', () => common.handleDelete(loadHabits));
-  document.getElementById('prev-week').addEventListener('click', previousWeek);
-  document.getElementById('next-week').addEventListener('click', nextWeek);
-  document.getElementById('night-mode-toggle').addEventListener('click', () => common.toggleNightMode('viewport'));
+  document.getElementById('night-mode-toggle').addEventListener('click', () => common.toggleNightMode('body'));
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -163,9 +142,7 @@ async function init() {
       if (e.key === 'Enter') common.saveHabit(loadHabits);
     } else {
       if (e.key === 'n' || e.key === 'N') common.openAddModal();
-      if (e.key === 'ArrowLeft') previousWeek();
-      if (e.key === 'ArrowRight') nextWeek();
-      if (e.key === 'd' || e.key === 'D') common.toggleNightMode('viewport');
+      if (e.key === 'd' || e.key === 'D') common.toggleNightMode('body');
     }
   });
 }

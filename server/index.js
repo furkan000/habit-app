@@ -289,8 +289,13 @@ app.put('/api/logs/:id', requireTenant, async (req, res) => {
 
 // Serve HTML files for production (must be after API routes)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (_req, res) => {
-    res.sendFile(join(__dirname, '../dist/index.html'));
+  app.get('*', (req, res) => {
+    // Check if mobile parameter is present
+    if (req.query.mobile === 'true' || req.query.mobile === '1') {
+      res.sendFile(join(__dirname, '../dist/mobile.html'));
+    } else {
+      res.sendFile(join(__dirname, '../dist/index.html'));
+    }
   });
 }
 
