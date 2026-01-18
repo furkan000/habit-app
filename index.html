@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habit Tracker</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .viewport {
+      width: 800px;
+      height: 480px;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      background: #fff;
+      color: #000;
+      font-size: 14px;
+      line-height: 1.2;
+      position: relative;
+    }
+
+    .viewport.night-mode {
+      background: #000;
+      color: #fff;
+    }
+
+    .app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      padding: 8px 12px;
+      border-bottom: 3px solid #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .night-mode .header {
+      border-bottom-color: #fff;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Grid container */
+    .grid-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Column headers */
+    .grid-header {
+      display: grid;
+      grid-template-columns: 200px repeat(7, 1fr) 60px;
+      border-bottom: 2px solid #000;
+      background: #fff;
+    }
+
+    .night-mode .grid-header {
+      border-bottom-color: #fff;
+      background: #000;
+    }
+
+    .grid-header-cell {
+      padding: 6px 4px;
+      text-align: center;
+      border-right: 1px solid #000;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .night-mode .grid-header-cell {
+      border-right-color: #fff;
+    }
+
+    .grid-header-cell:first-child {
+      text-align: left;
+      padding-left: 8px;
+    }
+
+    .grid-header-cell.today {
+      background: #000;
+      color: #fff;
+    }
+
+    .night-mode .grid-header-cell.today {
+      background: #fff;
+      color: #000;
+    }
+
+    /* Grid body */
+    .grid-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* Habit row */
+    .habit-row {
+      display: grid;
+      grid-template-columns: 200px repeat(7, 1fr) 60px;
+      border-bottom: 1px solid #000;
+      min-height: 32px;
+    }
+
+    .night-mode .habit-row {
+      border-bottom-color: #fff;
+    }
+
+    .habit-row:hover {
+      background: #f0f0f0;
+    }
+
+    .night-mode .habit-row:hover {
+      background: #222;
+    }
+
+    .habit-name-cell {
+      padding: 6px 8px;
+      border-right: 1px solid #000;
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .night-mode .habit-name-cell {
+      border-right-color: #fff;
+    }
+
+    .habit-name-cell:active {
+      background: #000;
+      color: #fff;
+    }
+
+    .night-mode .habit-name-cell:active {
+      background: #fff;
+      color: #000;
+    }
+
+    .day-cell {
+      border-right: 1px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .night-mode .day-cell {
+      border-right-color: #fff;
+    }
+
+    .day-cell.completed {
+      background: #000;
+      color: #fff;
+    }
+
+    .night-mode .day-cell.completed {
+      background: #fff;
+      color: #000;
+    }
+
+    .day-cell.today {
+      border-left: 2px solid #000;
+      border-right: 2px solid #000;
+    }
+
+    .night-mode .day-cell.today {
+      border-left-color: #fff;
+      border-right-color: #fff;
+    }
+
+    .day-cell:active {
+      background: #666;
+    }
+
+    .night-mode .day-cell:active {
+      background: #999;
+    }
+
+    /* Buttons */
+    button {
+      background: #fff;
+      color: #000;
+      border: 2px solid #000;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .night-mode button {
+      background: #000;
+      color: #fff;
+      border-color: #fff;
+    }
+
+    button:active {
+      background: #000;
+      color: #fff;
+    }
+
+    .night-mode button:active {
+      background: #fff;
+      color: #000;
+    }
+
+    button.primary {
+      background: #000;
+      color: #fff;
+    }
+
+    .night-mode button.primary {
+      background: #fff;
+      color: #000;
+    }
+
+    button.primary:active {
+      background: #fff;
+      color: #000;
+    }
+
+    .night-mode button.primary:active {
+      background: #000;
+      color: #fff;
+    }
+
+    /* Night mode toggle button */
+    #night-mode-toggle {
+      min-width: auto;
+      padding: 6px 10px;
+      font-size: 16px;
+    }
+
+    /* Modal/Form overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 800px;
+      height: 480px;
+      background: #fff;
+      z-index: 100;
+      flex-direction: column;
+    }
+
+    .night-mode .overlay {
+      background: #000;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .overlay .header {
+      border-bottom: 3px solid #000;
+    }
+
+    .night-mode .overlay .header {
+      border-bottom-color: #fff;
+    }
+
+    .form-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      border: 2px solid #000;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      background: #fff;
+      color: #000;
+    }
+
+    .night-mode .form-group input {
+      border-color: #fff;
+      background: #000;
+      color: #fff;
+    }
+
+    .form-actions {
+      padding: 12px;
+      border-top: 2px solid #000;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .night-mode .form-actions {
+      border-top-color: #fff;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .empty-state h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport" id="viewport">
+    <div class="app">
+      <div class="header">
+        <h1>Habits</h1>
+        <div class="header-actions">
+          <button id="night-mode-toggle">☾</button>
+          <button id="prev-week">◄</button>
+          <button id="next-week">►</button>
+          <button id="add-habit-btn" class="primary">+ Add</button>
+        </div>
+      </div>
+      <div class="grid-container">
+        <div class="grid-header" id="grid-header"></div>
+        <div class="grid-body" id="grid-body">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Habit Modal -->
+    <div class="overlay" id="habit-modal">
+      <div class="header">
+        <h1 id="modal-title">Add Habit</h1>
+        <button id="close-modal">✕</button>
+      </div>
+      <div class="form-content">
+        <div class="form-group">
+          <label for="habit-name">Habit Name</label>
+          <input type="text" id="habit-name" placeholder="e.g., Morning Exercise">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button id="delete-habit-btn" style="margin-right: auto; display: none;">Delete</button>
+        <button id="cancel-btn">Cancel</button>
+        <button id="save-habit-btn" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
