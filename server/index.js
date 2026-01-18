@@ -51,7 +51,8 @@ async function getTenantDB(tenant) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
-      created_at INTEGER NOT NULL
+      created_at INTEGER NOT NULL,
+      order_position INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS habit_logs (
@@ -64,6 +65,25 @@ async function getTenantDB(tenant) {
       UNIQUE(habit_id, date)
     );
   `);
+
+  // Migrate existing databases: add order_position column if it doesn't exist
+  try {
+    const tableInfo = db.exec("PRAGMA table_info(habits)");
+    const columns = tableInfo.length > 0 ? tableInfo[0].values.map(col => col[1]) : [];
+
+    if (!columns.includes('order_position')) {
+      db.run('ALTER TABLE habits ADD COLUMN order_position INTEGER');
+      // Set initial order based on created_at
+      const habits = db.exec('SELECT id FROM habits ORDER BY created_at ASC');
+      if (habits.length > 0) {
+        habits[0].values.forEach((row, index) => {
+          db.run('UPDATE habits SET order_position = ? WHERE id = ?', [index, row[0]]);
+        });
+      }
+    }
+  } catch (e) {
+    // Column might already exist, continue
+  }
 
   const dbInfo = { db, path: dbPath };
   databases.set(safeTenant, dbInfo);
@@ -104,12 +124,13 @@ function requireTenant(req, res, next) {
 app.get('/api/habits', requireTenant, async (req, res) => {
   try {
     const { db } = await getTenantDB(req.tenant);
-    const result = db.exec('SELECT * FROM habits ORDER BY created_at DESC');
+    const result = db.exec('SELECT * FROM habits ORDER BY order_position ASC, created_at DESC');
     const habits = result.length > 0 ? result[0].values.map(row => ({
       id: row[0],
       name: row[1],
       description: row[2],
-      created_at: row[3]
+      created_at: row[3],
+      order_position: row[4]
     })) : [];
     res.json(habits);
   } catch (error) {
@@ -132,7 +153,8 @@ app.get('/api/habits/:id', requireTenant, async (req, res) => {
       id: habitRow[0],
       name: habitRow[1],
       description: habitRow[2],
-      created_at: habitRow[3]
+      created_at: habitRow[3],
+      order_position: habitRow[4]
     };
 
     const logsResult = db.exec(
@@ -163,16 +185,24 @@ app.post('/api/habits', requireTenant, async (req, res) => {
     }
 
     const { db } = await getTenantDB(req.tenant);
+
+    // Get the max order_position to add new habit at the end
+    const maxOrderResult = db.exec('SELECT MAX(order_position) FROM habits');
+    const maxOrder = maxOrderResult.length > 0 && maxOrderResult[0].values.length > 0
+      ? maxOrderResult[0].values[0][0]
+      : -1;
+    const newOrder = maxOrder === null ? 0 : maxOrder + 1;
+
     db.run(
-      'INSERT INTO habits (name, description, created_at) VALUES (?, ?, ?)',
-      [name, description || '', Date.now()]
+      'INSERT INTO habits (name, description, created_at, order_position) VALUES (?, ?, ?, ?)',
+      [name, description || '', Date.now(), newOrder]
     );
 
     const result = db.exec('SELECT last_insert_rowid()');
     const id = result[0].values[0][0];
 
     saveTenantDB(req.tenant);
-    res.json({ id, name, description });
+    res.json({ id, name, description, order_position: newOrder });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -201,6 +231,29 @@ app.delete('/api/habits/:id', requireTenant, async (req, res) => {
   try {
     const { db } = await getTenantDB(req.tenant);
     db.run('DELETE FROM habits WHERE id = ?', [req.params.id]);
+    saveTenantDB(req.tenant);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update habit order
+app.post('/api/habits/reorder', requireTenant, async (req, res) => {
+  try {
+    const { habitOrders } = req.body; // Array of { id, order_position }
+
+    if (!Array.isArray(habitOrders)) {
+      return res.status(400).json({ error: 'habitOrders must be an array' });
+    }
+
+    const { db } = await getTenantDB(req.tenant);
+
+    // Update each habit's order_position
+    for (const { id, order_position } of habitOrders) {
+      db.run('UPDATE habits SET order_position = ? WHERE id = ?', [order_position, id]);
+    }
+
     saveTenantDB(req.tenant);
     res.json({ success: true });
   } catch (error) {

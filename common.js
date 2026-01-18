@@ -86,6 +86,15 @@ export async function fetchHabitWithLogs(id) {
   return response.json();
 }
 
+export async function reorderHabits(habitOrders) {
+  const response = await fetch(`/api/habits/reorder?tenant=${tenant}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ habitOrders, tenant })
+  });
+  return response.json();
+}
+
 // Check if habit is completed for a specific date
 export function isCompletedOnDate(logs, date) {
   const dateStr = formatDate(date);

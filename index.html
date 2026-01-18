@@ -136,6 +136,8 @@
       grid-template-columns: 200px repeat(7, 1fr) 60px;
       border-bottom: 1px solid #000;
       min-height: 32px;
+      cursor: move;
+      transition: opacity 0.2s;
     }
 
     .night-mode .habit-row {
@@ -150,6 +152,32 @@
       background: #222;
     }
 
+    .habit-row.dragging {
+      opacity: 0.5;
+    }
+
+    .habit-row-placeholder {
+      background: repeating-linear-gradient(
+        45deg,
+        #ccc,
+        #ccc 10px,
+        #ddd 10px,
+        #ddd 20px
+      );
+      border: 2px dashed #999;
+    }
+
+    .night-mode .habit-row-placeholder {
+      background: repeating-linear-gradient(
+        45deg,
+        #333,
+        #333 10px,
+        #222 10px,
+        #222 20px
+      );
+      border-color: #666;
+    }
+
     .habit-name-cell {
       padding: 6px 8px;
       border-right: 1px solid #000;
@@ -158,6 +186,19 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      opacity: 0.5;
+      user-select: none;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
     }
 
     .night-mode .habit-name-cell {

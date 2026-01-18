@@ -65,8 +65,11 @@ async function renderHabitsGrid() {
   let html = '';
 
   habitsWithLogs.forEach(habit => {
-    html += `<div class="habit-row">`;
-    html += `<div class="habit-name-cell" data-edit-habit="${habit.id}">${habit.name}</div>`;
+    html += `<div class="habit-row" draggable="true" data-habit-id="${habit.id}">`;
+    html += `<div class="habit-name-cell" data-edit-habit="${habit.id}">
+      <span class="drag-handle">⋮⋮</span>
+      <span>${habit.name}</span>
+    </div>`;
 
     dates.forEach((date, idx) => {
       const isToday = idx === dates.length - 1;
@@ -100,11 +103,92 @@ async function renderHabitsGrid() {
 
   // Add click handlers for edit
   document.querySelectorAll('[data-edit-habit]').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      // Don't trigger edit when clicking drag handle
+      if (e.target.classList.contains('drag-handle')) return;
       const habitId = el.dataset.editHabit;
       common.openEditModal(habitId);
     });
   });
+
+  // Add drag-and-drop handlers
+  setupDragAndDrop();
+}
+
+// Setup drag-and-drop for habit reordering
+function setupDragAndDrop() {
+  let draggedElement = null;
+  let placeholder = null;
+
+  const habitRows = document.querySelectorAll('.habit-row');
+
+  habitRows.forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      draggedElement = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', row.innerHTML);
+
+      // Create placeholder
+      placeholder = document.createElement('div');
+      placeholder.className = 'habit-row-placeholder';
+      placeholder.style.height = row.offsetHeight + 'px';
+    });
+
+    row.addEventListener('dragend', (e) => {
+      row.classList.remove('dragging');
+      if (placeholder && placeholder.parentNode) {
+        placeholder.parentNode.removeChild(placeholder);
+      }
+      draggedElement = null;
+
+      // Save new order
+      saveHabitOrder();
+    });
+
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (!draggedElement || draggedElement === row) return;
+
+      const gridBody = document.getElementById('grid-body');
+      const allRows = [...gridBody.querySelectorAll('.habit-row')];
+      const draggedIndex = allRows.indexOf(draggedElement);
+      const targetIndex = allRows.indexOf(row);
+
+      if (draggedIndex < targetIndex) {
+        row.parentNode.insertBefore(draggedElement, row.nextSibling);
+      } else {
+        row.parentNode.insertBefore(draggedElement, row);
+      }
+    });
+
+    row.addEventListener('drop', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    });
+  });
+}
+
+// Save the new habit order to the backend
+async function saveHabitOrder() {
+  const gridBody = document.getElementById('grid-body');
+  const habitRows = gridBody.querySelectorAll('.habit-row');
+
+  const habitOrders = [];
+  habitRows.forEach((row, index) => {
+    const habitId = row.dataset.habitId;
+    habitOrders.push({ id: parseInt(habitId), order_position: index });
+  });
+
+  try {
+    await common.reorderHabits(habitOrders);
+    // Reload to ensure consistency
+    await loadHabits();
+  } catch (error) {
+    console.error('Failed to save habit order:', error);
+  }
 }
 
 // Load and refresh
