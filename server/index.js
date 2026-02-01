@@ -342,12 +342,64 @@ app.put('/api/logs/:id', requireTenant, async (req, res) => {
 
 // Serve HTML files for production (must be after API routes)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get('*', async (req, res) => {
     // Check if mobile parameter is present
     if (req.query.mobile === 'true' || req.query.mobile === '1') {
       res.sendFile(join(__dirname, '../dist/mobile.html'));
     } else {
-      res.sendFile(join(__dirname, '../dist/index.html'));
+      // Server-side render for desktop version
+      const tenant = req.query.tenant;
+
+      if (!tenant) {
+        // No tenant, serve without SSR
+        res.sendFile(join(__dirname, '../dist/index.html'));
+        return;
+      }
+
+      try {
+        // Fetch habits data for this tenant
+        const { db } = await getTenantDB(tenant);
+        const result = db.exec('SELECT * FROM habits ORDER BY order_position ASC, created_at DESC');
+        const habits = result.length > 0 ? result[0].values.map(row => ({
+          id: row[0],
+          name: row[1],
+          description: row[2],
+          created_at: row[3],
+          order_position: row[4]
+        })) : [];
+
+        // Fetch logs for all habits
+        const habitsWithLogs = await Promise.all(
+          habits.map(async (habit) => {
+            const logsResult = db.exec(
+              'SELECT * FROM habit_logs WHERE habit_id = ? ORDER BY date DESC LIMIT 90',
+              [habit.id]
+            );
+            const logs = logsResult.length > 0 ? logsResult[0].values.map(row => ({
+              id: row[0],
+              habit_id: row[1],
+              date: row[2],
+              completed: row[3],
+              notes: row[4]
+            })) : [];
+            return { ...habit, logs };
+          })
+        );
+
+        // Read the HTML file
+        const htmlPath = join(__dirname, '../dist/index.html');
+        let html = readFileSync(htmlPath, 'utf-8');
+
+        // Inject the initial data as a script tag before the main.js script
+        const ssrData = `<script>window.__SSR_DATA__ = ${JSON.stringify({ habits: habitsWithLogs })};</script>`;
+        html = html.replace('</body>', `${ssrData}</body>`);
+
+        res.send(html);
+      } catch (error) {
+        console.error('SSR error:', error);
+        // Fallback to client-side rendering on error
+        res.sendFile(join(__dirname, '../dist/index.html'));
+      }
     }
   });
 }

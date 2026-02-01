@@ -61,8 +61,16 @@ async function renderHabitsGrid() {
     return;
   }
 
+  // Check if habits already have logs (from SSR) or need to fetch them
   const habitsWithLogs = await Promise.all(
-    common.habits.map(h => common.fetchHabitWithLogs(h.id))
+    common.habits.map(h => {
+      // If habit already has logs property, use it (SSR data)
+      if (h.logs) {
+        return Promise.resolve(h);
+      }
+      // Otherwise fetch logs from API
+      return common.fetchHabitWithLogs(h.id);
+    })
   );
 
   let html = '';
@@ -198,8 +206,20 @@ async function saveHabitOrder() {
 }
 
 // Load and refresh
-async function loadHabits() {
-  const fetchedHabits = await common.fetchHabits();
+async function loadHabits(useSSRData = false) {
+  let fetchedHabits;
+
+  // Check if we should use SSR data
+  if (useSSRData && window.__SSR_DATA__ && window.__SSR_DATA__.habits) {
+    // Use server-side rendered data (already includes logs)
+    fetchedHabits = window.__SSR_DATA__.habits;
+    // Clear the SSR data after using it once
+    delete window.__SSR_DATA__;
+  } else {
+    // Fetch from API
+    fetchedHabits = await common.fetchHabits();
+  }
+
   common.setHabits(fetchedHabits);
   renderGridHeader();
   await renderHabitsGrid();
@@ -228,7 +248,8 @@ async function init() {
   // Load night mode preference (desktop uses viewport element)
   common.loadNightModePreference('viewport');
 
-  await loadHabits();
+  // Load habits (try SSR data first)
+  await loadHabits(true);
 
   // Event listeners
   document.getElementById('add-habit-btn').addEventListener('click', common.openAddModal);
