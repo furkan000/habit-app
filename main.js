@@ -28,8 +28,14 @@ function formatHeaderDate(date) {
 }
 
 // Desktop-specific: Render grid header (includes streak column)
-function renderGridHeader() {
+function renderGridHeader(skipIfRendered = false) {
   const header = document.getElementById('grid-header');
+
+  // Skip rendering if already rendered by server
+  if (skipIfRendered && header.children.length > 0) {
+    return;
+  }
+
   const dates = getGridDates();
 
   let html = '<div class="grid-header-cell">Habit Name</div>';
@@ -46,9 +52,43 @@ function renderGridHeader() {
   header.innerHTML = html;
 }
 
+// Attach event listeners to already-rendered grid (hydration)
+function attachGridEventListeners() {
+  // Add click handlers for toggle
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const habitId = el.dataset.toggle;
+      const date = el.dataset.date;
+      await common.toggleHabitLog(habitId, date);
+      await renderHabitsGrid();
+    });
+  });
+
+  // Add click handlers for edit
+  document.querySelectorAll('[data-edit-habit]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      // Don't trigger edit when clicking drag handle
+      if (e.target.classList.contains('drag-handle')) return;
+      const habitId = el.dataset.editHabit;
+      common.openEditModal(habitId);
+    });
+  });
+
+  // Add drag-and-drop handlers
+  setupDragAndDrop();
+}
+
 // Desktop-specific: Render habits grid (includes streak column)
-async function renderHabitsGrid() {
+async function renderHabitsGrid(skipIfRendered = false) {
   const gridBody = document.getElementById('grid-body');
+
+  // If already rendered by server, just attach event listeners
+  if (skipIfRendered && gridBody.children.length > 0) {
+    attachGridEventListeners();
+    return;
+  }
+
   const dates = getGridDates();
 
   if (common.habits.length === 0) {
@@ -104,29 +144,7 @@ async function renderHabitsGrid() {
 
   gridBody.innerHTML = html;
 
-  // Add click handlers for toggle
-  document.querySelectorAll('[data-toggle]').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const habitId = el.dataset.toggle;
-      const date = el.dataset.date;
-      await common.toggleHabitLog(habitId, date);
-      await renderHabitsGrid();
-    });
-  });
-
-  // Add click handlers for edit
-  document.querySelectorAll('[data-edit-habit]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      // Don't trigger edit when clicking drag handle
-      if (e.target.classList.contains('drag-handle')) return;
-      const habitId = el.dataset.editHabit;
-      common.openEditModal(habitId);
-    });
-  });
-
-  // Add drag-and-drop handlers
-  setupDragAndDrop();
+  attachGridEventListeners();
 }
 
 // Setup drag-and-drop for habit reordering
@@ -208,11 +226,13 @@ async function saveHabitOrder() {
 // Load and refresh
 async function loadHabits(useSSRData = false) {
   let fetchedHabits;
+  let isServerRendered = false;
 
   // Check if we should use SSR data
   if (useSSRData && window.__SSR_DATA__ && window.__SSR_DATA__.habits) {
     // Use server-side rendered data (already includes logs)
     fetchedHabits = window.__SSR_DATA__.habits;
+    isServerRendered = window.__SSR_DATA__.rendered || false;
     // Clear the SSR data after using it once
     delete window.__SSR_DATA__;
   } else {
@@ -221,8 +241,8 @@ async function loadHabits(useSSRData = false) {
   }
 
   common.setHabits(fetchedHabits);
-  renderGridHeader();
-  await renderHabitsGrid();
+  renderGridHeader(isServerRendered);
+  await renderHabitsGrid(isServerRendered);
 }
 
 // Week navigation (for future use)
