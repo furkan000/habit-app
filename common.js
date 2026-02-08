@@ -47,20 +47,20 @@ export async function fetchHabits() {
   return response.json();
 }
 
-export async function createHabit(name) {
+export async function createHabit(name, description = '') {
   const response = await fetch(`/api/habits?tenant=${tenant}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description: '', tenant })
+    body: JSON.stringify({ name, description, tenant })
   });
   return response.json();
 }
 
-export async function updateHabit(id, name) {
+export async function updateHabit(id, name, description = '') {
   const response = await fetch(`/api/habits/${id}?tenant=${tenant}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description: '', tenant })
+    body: JSON.stringify({ name, description, tenant })
   });
   return response.json();
 }
@@ -134,6 +134,7 @@ export function openAddModal() {
   editingHabitId = null;
   document.getElementById('modal-title').textContent = 'Add Habit';
   document.getElementById('habit-name').value = '';
+  document.getElementById('habit-description').value = '';
   document.getElementById('delete-habit-btn').style.display = 'none';
   document.getElementById('habit-modal').classList.add('active');
   document.getElementById('habit-name').focus();
@@ -145,6 +146,7 @@ export async function openEditModal(habitId) {
 
   document.getElementById('modal-title').textContent = 'Edit Habit';
   document.getElementById('habit-name').value = habit.name;
+  document.getElementById('habit-description').value = habit.description || '';
   document.getElementById('delete-habit-btn').style.display = 'block';
   document.getElementById('habit-modal').classList.add('active');
   document.getElementById('habit-name').focus();
@@ -156,6 +158,7 @@ export function closeModal() {
 
 export async function saveHabit(loadHabits) {
   const name = document.getElementById('habit-name').value.trim();
+  const description = document.getElementById('habit-description').value.trim();
 
   if (!name) {
     alert('Please enter a habit name');
@@ -163,9 +166,9 @@ export async function saveHabit(loadHabits) {
   }
 
   if (editingHabitId) {
-    await updateHabit(editingHabitId, name);
+    await updateHabit(editingHabitId, name, description);
   } else {
-    await createHabit(name);
+    await createHabit(name, description);
   }
 
   closeModal();

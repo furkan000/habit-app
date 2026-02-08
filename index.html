@@ -86,7 +86,7 @@
     /* Column headers */
     .grid-header {
       display: grid;
-      grid-template-columns: 200px repeat(7, 1fr) 60px;
+      grid-template-columns: 280px repeat(7, 1fr) 50px;
       border-bottom: 2px solid #000;
       background: #fff;
     }
@@ -102,6 +102,7 @@
       border-right: 1px solid #000;
       font-weight: bold;
       font-size: 12px;
+      white-space: pre-line;
     }
 
     .night-mode .grid-header-cell {
@@ -133,10 +134,10 @@
     /* Habit row */
     .habit-row {
       display: grid;
-      grid-template-columns: 200px repeat(7, 1fr) 60px;
+      grid-template-columns: 280px repeat(7, 1fr) 50px;
       border-bottom: 1px solid #000;
-      min-height: 32px;
-      cursor: move;
+      min-height: 44px;
+      cursor: default;
       transition: opacity 0.2s;
     }
 
@@ -181,24 +182,39 @@
     .habit-name-cell {
       padding: 6px 8px;
       border-right: 1px solid #000;
-      font-weight: bold;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .drag-handle {
-      cursor: grab;
-      opacity: 0.5;
-      user-select: none;
+    .habit-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
     }
 
-    .drag-handle:active {
-      cursor: grabbing;
+    .habit-title {
+      font-weight: bold;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .habit-description {
+      font-size: 10px;
+      font-weight: normal;
+      opacity: 0.7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .drag-handle {
+      display: none;
     }
 
     .night-mode .habit-name-cell {
@@ -402,10 +418,8 @@
       <div class="header">
         <h1>Habits</h1>
         <div class="header-actions">
-          <button id="night-mode-toggle">☾</button>
-          <button id="prev-week">◄</button>
-          <button id="next-week">►</button>
-          <button id="add-habit-btn" class="primary">+ Add</button>
+          <!-- <button id="night-mode-toggle">☾</button> -->
+          <button id="add-habit-btn">+ Add</button>
         </div>
       </div>
       <div class="grid-container">
@@ -424,6 +438,10 @@
         <div class="form-group">
           <label for="habit-name">Habit Name</label>
           <input type="text" id="habit-name" placeholder="e.g., Morning Exercise">
+        </div>
+        <div class="form-group">
+          <label for="habit-description">Description (optional)</label>
+          <input type="text" id="habit-description" placeholder="e.g., 30 minutes of cardio">
         </div>
       </div>
       <div class="form-actions">

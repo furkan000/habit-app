@@ -68,7 +68,10 @@ async function renderHabitsGrid() {
     html += `<div class="habit-row" draggable="true" data-habit-id="${habit.id}">`;
     html += `<div class="habit-name-cell" data-edit-habit="${habit.id}">
       <span class="drag-handle">⋮⋮</span>
-      <span>${habit.name}</span>
+      <div class="habit-info">
+        <span class="habit-title">${habit.name}</span>
+        ${habit.description ? `<span class="habit-description">${habit.description}</span>` : ''}
+      </div>
     </div>`;
 
     dates.forEach((date, idx) => {
