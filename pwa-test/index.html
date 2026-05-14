@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hello PWA</title>
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 12px;
+    }
+
+    h1 { font-size: 2.5rem; }
+    p { color: #888; font-size: 1rem; }
+
+    #install-banner {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 16px;
+      right: 16px;
+      background: #16213e;
+      border: 1px solid #2a2a5a;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      z-index: 999;
+    }
+
+    #install-banner.visible { display: flex; }
+
+    #install-banner img {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .banner-text { flex: 1; }
+    .banner-text strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+    .banner-text span { font-size: 0.8rem; color: #888; }
+
+    .banner-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+
+    #btn-install {
+      background: #4f8ef7;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #btn-dismiss {
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    #installed-msg {
+      display: none;
+      color: #4CAF50;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello World</h1>
+  <p>PWA test page</p>
+  <div id="installed-msg">Installed! You can close the browser.</div>
+
+  <div id="install-banner">
+    <img src="icons/icon-192.png" alt="App icon" />
+    <div class="banner-text">
+      <strong>Hello PWA</strong>
+      <span>Add to your home screen & app drawer</span>
+    </div>
+    <div class="banner-actions">
+      <button id="btn-install">Install</button>
+      <button id="btn-dismiss">Not now</button>
+    </div>
+  </div>
+
+  <script>
+    let deferredPrompt = null;
+    const banner = document.getElementById('install-banner');
+    const btnInstall = document.getElementById('btn-install');
+    const btnDismiss = document.getElementById('btn-dismiss');
+    const installedMsg = document.getElementById('installed-msg');
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      banner.classList.remove('visible');
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installedMsg.style.display = 'block';
+      }
+      deferredPrompt = null;
+    });
+
+    btnDismiss.addEventListener('click', () => {
+      banner.classList.remove('visible');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      banner.classList.remove('visible');
+      installedMsg.style.display = 'block';
+      deferredPrompt = null;
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
