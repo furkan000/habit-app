@@ -10,10 +10,15 @@ export let tenant = null;
 currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
 currentWeekStart.setHours(0, 0, 0, 0);
 
-// Get tenant from URL
+// Get tenant from URL, falling back to localStorage (for PWA cold launches)
 export function getTenant() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('tenant');
+  const urlTenant = params.get('tenant');
+  if (urlTenant) {
+    localStorage.setItem('tenant', urlTenant);
+    return urlTenant;
+  }
+  return localStorage.getItem('tenant');
 }
 
 // Redirect to landing page if no tenant
@@ -22,6 +27,12 @@ export function checkTenant() {
   if (!tenant) {
     window.location.href = '/landing.html';
     return false;
+  }
+  // Restore tenant into URL if it came from localStorage so links/API calls stay consistent
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('tenant')) {
+    params.set('tenant', tenant);
+    window.history.replaceState({}, '', '?' + params.toString());
   }
   return true;
 }
